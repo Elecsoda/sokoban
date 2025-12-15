@@ -2,814 +2,776 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>推箱子游戏 @ 孙维刚教育研究院</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>推箱子 - 移动端优化版</title>
   <style>
-    /* —— 基本样式 —— */
+    /* —— 全局设置 —— */
+    :root {
+      --bg-color: #f0f2f5;
+      --control-bg: rgba(255, 255, 255, 0.95);
+      --primary-color: #007AFF;
+      --btn-active: #0056b3;
+    }
+
     body {
-  margin: 0;
-  padding: 0;
-  text-align: center;
-  background-color: #f4f4f9; /* 背景色 */
-  font-family: Arial, sans-serif;
-  overflow-x: hidden; /* 禁止水平滚动条 */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 95vh;      /* 让内容填满整个屏幕 */
-}
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* 禁止整个页面滚动 */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* —— 顶部区域：标题与关卡选择 —— */
+    header {
+      padding: 10px 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      z-index: 10;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
     h1 {
-      margin: 20px 0;
+      margin: 5px 0 5px 0;
+      font-size: 1.1rem;
+      color: #333;
+      text-align: center;
     }
 
-    /* —— 按钮区域（顶部） —— */
-    #controls {
-  margin-top: 10px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
-
-
-button {
-  margin: 10px;                 /* 增加按钮之间的间距 */
-  padding: 15px 25px;           /* 增大按钮内部的间距 */
-  font-size: 18px;              /* 增大按钮文字的大小 */
-  border-radius: 8px;           /* 添加圆角 */
-  border: none;                 /* 移除边框 */
-  background-color: #007BFF;    /* 设置按钮背景色 */
-  color: white;                 /* 按钮文字颜色 */
-  cursor: pointer;              /* 鼠标悬停时显示手型 */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* 添加阴影效果 */
-}
-
-button:active {
-  background-color: #0056b3;    /* 按下时按钮变暗 */
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2); /* 按下时减少阴影 */
-}
-
-button:focus {
-  outline: none;                /* 移除焦点边框 */
-}
-
-    /* —— 自定义地图输入区域，初始隐藏 —— */
-    #custom-map-container {
-      display: none; 
-      margin-bottom: 10px;
+    /* 关卡选择器：优化滚动显示 */
+    #level-scroll-container {
+      display: flex;
+      overflow-x: auto;
+      gap: 12px;
+      padding: 5px 15px 15px 15px; /* 增加底部padding防止阴影被切 */
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
-    #map-input {
-      width: 90%;
-      height: 100px;
-      margin: 10px auto;
-      display: block;
-      font-family: monospace; /* 保持字符对齐 */
+    #level-scroll-container::-webkit-scrollbar {
+      display: none;
     }
 
-    /*
-      —— 游戏区域 —— 
-      设为 80vw 宽，不超过最大宽度 900px，避免出现滚动条。
-    */
+    .level-btn {
+      flex: 0 0 auto;
+      padding: 8px 18px;
+      font-size: 14px;
+      border-radius: 20px;
+      border: 1px solid #eee;
+      background-color: #fff;
+      color: #555;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: all 0.2s;
+    }
+
+    .level-btn.active {
+      background-color: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+      box-shadow: 0 3px 8px rgba(0,122,255,0.3);
+      transform: translateY(-1px);
+    }
+
+    /* —— 游戏主区域 —— */
+    #game-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background-color: #e8e8e8;
+      margin: 10px;
+      border-radius: 12px;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+    }
+
     #game-board {
-  width: 90vw;              /* 地图宽度占屏幕的 80% */
-  max-width: 900px;         /* 最大宽度限制 */
-  height: 66vh;             /* 高度固定为屏幕的上方三分之二 */
-  max-height: 66vh;         /* 限制最大高度 */
-  margin: 20px auto;        /* 居中 */
-  display: grid;            /* 网格布局 */
-  gap: 1px;                 /* 网格间隙 */
-  background-color: #e0e0e0;   /* 背景色 */
-  justify-content: center;  /* 水平居中 */
-  align-content: center;    /* 垂直居中 */
-  overflow: hidden;         /* 防止超出容器 */
-  box-sizing: border-box;   /* 包括内边距和边框计算尺寸 */
-}
+      display: grid;
+      gap: 1px;
+      background-color: #bbb;
+      /* 宽高由 JS 动态计算 */
+    }
 
-    /* 每个网格保持正方形，需要现代浏览器支持 aspect-ratio */
+    /* 状态提示浮层 */
+    #status-overlay {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 15px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 20;
+      white-space: nowrap;
+    }
+    #status-overlay.show {
+      opacity: 1;
+    }
+
+    /* —— 地图元素样式 —— */
     .tile {
-      aspect-ratio: 1 / 1;
       background-color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      box-sizing: border-box;
-      font-size: 12px; /* 仅用于调试文字 */
+      position: relative; /* 关键：用于绝对定位子元素 */
     }
 
-    /* —— 墙壁 (#) —— */
+    /* 墙壁 */
     .wall {
-      background-image: url('wall.png');
-      background-size: cover;
-      background-position: center;
+      background-color: #555;
+      background-image: linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%, #666),
+                        linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%, #666);
+      background-size: 12px 12px;
     }
-
-    /* —— 墙外空地 (_) —— */
-    .outside {
-      background-color: #e0e0e0;
-      color: #aaa;
-    }
-
-    /* —— 普通空地 (-) —— */
-    .floor {
-      background-color: #fff;
-    }
-
-    /* —— 目标点（红点） —— */
-    .goal::before {
+    /* 墙外 */
+    .outside { background-color: transparent; }
+    /* 地板 */
+    .floor { background-color: #fffaf0; }
+    
+    /* 目标点（红点）：绝对定位在底层 */
+    .goal::after {
       content: "";
-      display: block;
       position: absolute;
-      top: 10; left: 10;
-      width: 50%; height: 50%;
-      background-color: red;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50%;   /* 更大 */
+      height: 50%;  /* 更大 */
+      background-color: #ff3333;
       border-radius: 50%;
+      z-index: 1; /* 在最底层（地板之上，物体之下） */
       opacity: 0.6;
-      z-index: 0; /* 在底层，让箱子/玩家叠在上方 */
     }
 
-    /* —— 玩家（小人） —— */
-    .player {
-      background-image: url('human.png');
-      background-size: contain;
-      background-position: center;
-      background-repeat: no-repeat;
-      z-index: 1;
+    /* 玩家：工人 */
+    .player::before {
+      content: "👷"; /* 工人 Emoji */
+      position: relative;
+      z-index: 5; /* 确保在红点上面 */
+      /* font-size 由 JS 动态控制 */
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
     }
 
-    /* —— 箱子 —— */
-    .box {
-      background-image: url('box.png');
-      background-size: contain;
-      background-position: center;
-      background-repeat: no-repeat;
-      z-index: 1;
+    /* 箱子 */
+    .box::before {
+      content: "📦";
+      position: relative;
+      z-index: 5;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
     }
 
-    /* —— 箱子叠在目标点上 —— */
+    /* 箱子在目标点上：绿底，依然是箱子 */
     .box-on-goal {
-      background-image: url('box.png');
-      background-size: contain;
-      background-position: center;
-      background-repeat: no-repeat;
-      box-shadow: inset 0 0 0 2px #b30000; /* 显示红色边 */
-      border-radius: 4px;
-      z-index: 1;
+      background-color: #ccffcc; /* 变绿 */
+    }
+    .box-on-goal::before {
+      content: "📦"; /* 保持箱子样子 */
+      position: relative;
+      z-index: 5;
+      filter: drop-shadow(0 0 5px rgba(0,255,0,0.5));
     }
 
-    /* —— 状态文本 —— */
-    #status {
-      font-size: 16px;
-      color: #333;
-      min-height: 24px; 
-      margin: 10px auto;
-    }
-
-    /* ============ 手动操作按钮区（地图下方） ============ */
-    #manual-controls button {
-  width: 80px;                 /* 增加宽度 */
-  height: 80px;                /* 增加高度 */
-  font-size: 20px;             /* 增大按钮文字的大小 */
-  border-radius: 50%;          /* 圆形按钮 */
-  background-color: #28a745;   /* 设置绿色背景色 */
-  color: white;                /* 按钮文字颜色 */
-}
-
-#manual-controls button:active {
-  background-color: #218838;   /* 按下时按钮变暗 */
-}
-
-#manual-controls {
-  display: flex;
-  justify-content: center;     /* 水平居中 */
-  align-items: center;         /* 垂直居中 */
-  gap: 15px;                   /* 按钮之间的间距 */
-}
-
-#arrow-container {
-  display: grid;
-  grid-template-columns: 60px 60px 60px;
-  grid-template-rows: 60px 60px 60px;
-  gap: 10px;                  /* 增加按钮之间的间距 */
-  justify-items: center;      /* 每个按钮居中 */
-  align-items: center;
-}
-
-    #btn-up {
-      grid-row: 1;  /* 行索引从1开始可以让上面一行留空 */
-      grid-column: 2;
-    }
-    #btn-left {
-      grid-row: 2;
-      grid-column: 1;
-    }
-    #btn-right {
-      grid-row: 2;
-      grid-column: 3;
-    }
-    #btn-down {
-      grid-row: 3;
-      grid-column: 2;
-    }
-
-    /* —— 右侧的“撤回”和“重玩”按钮 —— */
-    #side-buttons {
+    /* —— 底部控制区 —— */
+    #controls-area {
+      background-color: var(--control-bg);
+      padding: 10px 20px 20px 20px; /* 调整底部padding */
+      border-top-left-radius: 25px;
+      border-top-right-radius: 25px;
+      box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      backdrop-filter: blur(10px);
     }
+
+    /* 功能按钮行 */
+    .action-row {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .func-btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      background-color: #f1f3f5;
+      color: #495057;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 0 #dee2e6;
+    }
+    .func-btn:active { transform: translateY(2px); box-shadow: none; }
+    .btn-undo { color: #d63384; background-color: #fff0f6; box-shadow: 0 2px 0 #fcc2d7; }
+    .btn-restart { color: #fd7e14; background-color: #fff4e6; box-shadow: 0 2px 0 #ffe8cc; }
+
+    /* 方向盘布局 */
+    #dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 12px;
+      width: 200px;
+      height: 140px;
+    }
+
+    .dpad-btn {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 16px;
+      background-color: #fff;
+      color: #333;
+      font-size: 26px;
+      box-shadow: 0 4px 0 #e9ecef, 0 2px 5px rgba(0,0,0,0.05);
+      transition: all 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .dpad-btn:active {
+      transform: translateY(4px);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+      background-color: #f8f9fa;
+    }
+
+    #btn-up { grid-column: 2; grid-row: 1; background-color: var(--primary-color); color: white; box-shadow: 0 4px 0 #0056b3, 0 4px 8px rgba(0,122,255,0.3); }
+    #btn-left { grid-column: 1; grid-row: 2; }
+    #btn-down { grid-column: 2; grid-row: 2; }
+    #btn-right { grid-column: 3; grid-row: 2; }
+
+    #btn-up:active { background-color: #0069d9; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+
+    /* —— 底部文字 —— */
+    .footer-info {
+      font-size: 12px;
+      color: #adb5bd;
+      margin-top: 15px;
+      text-align: center;
+      width: 100%;
+      font-weight: 400;
+    }
+
+    /* —— 自定义地图模态框 —— */
+    #custom-map-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+    .modal-content {
+      background: white;
+      padding: 24px;
+      border-radius: 20px;
+      width: 85%;
+      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      margin: 15px 0;
+      font-family: monospace;
+      padding: 10px;
+      border: 2px solid #eee;
+      border-radius: 10px;
+      box-sizing: border-box;
+      resize: none;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
   </style>
 </head>
 <body>
-  <h1>推箱子游戏</h1>
 
-  <!-- 顶部按钮区域：6个关卡 + 自定义地图 -->
-  <div id="controls">
-    <button id="btn-level1">关卡1</button>
-    <button id="btn-level2">关卡2</button>
-    <button id="btn-level3">关卡3</button>
-    <button id="btn-level4">关卡4</button>
-    <button id="btn-level5">关卡5</button>
-    <button id="btn-level6">关卡6</button>
-  </div>
-  以下地图非常非常非常难，欢迎课后挑战！
-  <div id="controls">
-    <button id="btn-level7">关卡7</button>
-    <button id="btn-level8">关卡8</button>
-    <button id="btn-level9">关卡9</button>
-    <button id="btn-level10">关卡10</button>
-    <button id="btn-level11">关卡11</button>
-    <button id="btn-level12">关卡12</button>
-    <button id="btn-level13">关卡13</button>
-    <button id="btn-show-custom-map">自定义地图</button>
-  </div>
-
-  <!-- 自定义地图输入区 -->
-  <div id="custom-map-container">
-    <textarea id="map-input" placeholder="在此粘贴或输入地图"></textarea>
-    <button id="btn-load-map">加载地图</button>
-  </div>
-
-  <!-- 游戏地图 -->
-  <div id="game-board"></div>
-
-  <!-- 下方状态提示 -->
-  <p id="status"></p>
-
-  <!-- 下方手动操作：上下左右 + 撤回 + 重玩 -->
-  <div id="manual-controls">
-    <div id="arrow-container">
-      <div></div>
-      <button id="btn-up">↑</button>
-      <div></div>
-  
-      <button id="btn-left">←</button>
-      <div></div>
-      <button id="btn-right">→</button>
-  
-      <div></div>
-      <button id="btn-down">↓</button>
-      <div></div>
+  <!-- 头部 -->
+  <header>
+    <h1>推箱子</h1>
+    <div id="level-scroll-container">
+      <!-- 关卡按钮由 JS 生成 -->
     </div>
-  
-    <div id="side-buttons">
-      <button id="btn-undo">撤回</button>
-      <button id="btn-restart">重玩</button>
+  </header>
+
+  <!-- 游戏区域 -->
+  <div id="game-container">
+    <div id="game-board"></div>
+    <div id="status-overlay"></div> <!-- 胜利提示 -->
+  </div>
+
+  <!-- 底部操作区 -->
+  <div id="controls-area">
+    <div class="action-row">
+      <button class="func-btn extra-btn" id="btn-show-custom">🗺️ 自定义</button>
+      <div style="flex:1"></div>
+      <button class="func-btn btn-undo" id="btn-undo">↩️ 撤回</button>
+      <button class="func-btn btn-restart" id="btn-restart">🔄 重玩</button>
+    </div>
+
+    <div id="dpad">
+      <!-- 空占位 -->
+      <div style="grid-column: 1; grid-row: 1;"></div>
+      <button class="dpad-btn" id="btn-up">▲</button>
+      <div style="grid-column: 3; grid-row: 1;"></div>
+      
+      <button class="dpad-btn" id="btn-left">◀</button>
+      <button class="dpad-btn" id="btn-down">▼</button>
+      <button class="dpad-btn" id="btn-right">▶</button>
+    </div>
+
+    <!-- 底部版权信息 -->
+    <div class="footer-info">@孙维刚教育研究院</div>
+  </div>
+
+  <!-- 自定义地图弹窗 -->
+  <div id="custom-map-modal">
+    <div class="modal-content">
+      <h3 style="margin:0">输入自定义地图</h3>
+      <textarea id="map-input" placeholder="请在此粘贴地图数据...&#10;######&#10;#@ $.#&#10;######"></textarea>
+      <div class="modal-actions">
+        <button class="func-btn" style="background:#f1f3f5" onclick="document.getElementById('custom-map-modal').style.display='none'">取消</button>
+        <button class="func-btn" style="background:var(--primary-color);color:white;box-shadow:0 4px 0 #0056b3" id="btn-load-map">加载</button>
+      </div>
     </div>
   </div>
 
-
-  
 <script>
-/*
-  基于“可撤回 + 自定义地图”版本，并添加：
-  1) 下方四向按钮 (上下左右)
-  2) “撤回” & “重玩” 按钮放在右侧
-  3) 记录当前关卡文本，以便“重玩”回到初始状态
-*/
+/** 关卡数据 */
+const levels = [
+  // 关卡 1
+  `######
+#---.#
+#-$$.#
+#-$@.#
+######`,
+  // 关卡 2
+  `#####_
+#..-#_
+#-@$##
+#-$--#
+##---#
+_#####`,
+  // 关卡 3
+  `######
+#----#
+#-$@.#
+#-#$.#
+"#-$-.#
+######`,
+  // 关卡 4
+  `__#####_
+###---#_
+#.@$--#_
+###-$.#_
+#.##$-#_
+#-#-.-##
+#$-*$$.#
+#---.--#
+########`,
+  // 关卡 5
+  `____#####__________
+____#---#__________
+____#$--#__________
+__###--$##_________
+__#--$-$-#_________
+###-#-##-#___######
+#---#-##-#####--..#
+#-$--$----------..#
+#####-###-#@##--..#
+____#-----#########
+____#######________`,
+  // 关卡 6
+  `############__
+#..--#-----###
+#..--#-$--$--#
+#..--#$####--#
+"#..----@-##--#
+"#..--#-#--$-##
+"######-##$-$-#
+__#-$--$-$-$-#
+__#----#-----#
+__############`,
+  // 关卡 7
+  `#####__
+#---#__
+"#---###
+"#$$$@-#
+"#...--#
+#######`,
+  // 关卡 8
+  `####__
+#--#__
+"#--#__
+"#--###
+"#. $$@#
+"#--.-#
+"#--###
+####__`,
+  // 关卡 9
+  `#######
+#-----#
+"#-$$$.#
+"##-#@.#
+_#-#-.#
+_#--#-#
+_##---#
+__#####`,
+  // 关卡 10
+  `_________#####
+_________#---#
+##########-#-#
+"#.-----#--$--#
+"#. --@--#----##
+"#.#-#######--#
+"#---------$$-#
+"##--#####----#
+_####___######`,
+  // 关卡 11
+  `_#######__
+_#-----###
+"##-###$--#
+"#--..-$--#
+"#--.##$-##
+"###-#-@##_
+__#---##__
+__#####___`,
+  // 关卡 12
+  `######____
+#----#####
+"#---$-$--#
+"###$...@-#
+__#--#####
+__####____`,
+  // 关卡 13
+  `#######
+#@-$.-#
+"#--$--#
+"#.-$-$#
+"#-.-#.#
+#######`
+];
 
-/** —— 6 个内置关卡文本 —— */
-const level1Text = [
-"######",
-"#---.#",
-"#-$$.#",
-"#-$@.#",
-"######"
-].join("\n");
+/** 全局状态 */
+let floorMap = [], objMap = [];
+let rows = 0, cols = 0;
+let playerX = 0, playerY = 0;
+let gameWon = false;
+let undoStack = [];
+let currentLevelData = "";
 
-const level2Text = [
-"#####_",
-"#..-#_",
-"#-@$##",
-"#-$--#",
-"##---#",
-"_#####"
-].join("\n");
+/** 初始化界面 */
+function initUI() {
+  const container = document.getElementById('level-scroll-container');
+  
+  // 生成关卡按钮
+  levels.forEach((lvl, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    btn.textContent = `第 ${index + 1} 关`; // 简化文案
+    btn.onclick = () => {
+      document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadLevelFromText(lvl);
+      // 自动滚动到中间（提升体验）
+      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    };
+    container.appendChild(btn);
+  });
 
-const level3Text = [
-"######",
-"#----#",
-"#-$@.#",
-"#-#$.#",
-"#-$-.#",
-"######"
-].join("\n");
+  // 默认加载第一关
+  container.children[0].classList.add('active');
+  loadLevelFromText(levels[0]);
+}
 
-const level4Text = [
-"__#####_",
-"###---#_",
-"#.@$--#_",
-"###-$.#_",
-"#.##$-#_",
-"#-#-.-##",
-"#$-*$$.#",
-"#---.--#",
-"########"
-].join("\n");
-
-const level5Text = [
-"____#####__________",
-"____#---#__________",
-"____#$--#__________",
-"__###--$##_________",
-"__#--$-$-#_________",
-"###-#-##-#___######",
-"#---#-##-#####--..#",
-"#-$--$----------..#",
-"#####-###-#@##--..#",
-"____#-----#########",
-"____#######________"
-].join("\n");
-
-const level6Text = [
-"############__",
-"#..--#-----###",
-"#..--#-$--$--#",
-"#..--#$####--#",
-"#..----@-##--#",
-"#..--#-#--$-##",
-"######-##$-$-#",
-"__#-$--$-$-$-#",
-"__#----#-----#",
-"__############"
-].join("\n");
-
-const level7Text = [
-"#####__",
-"#---#__",
-"#---###",
-"#$$$@-#",
-"#...--#",
-"#######"
-].join("\n");
-
-const level8Text = [
-"####__",
-"#--#__",
-"#--#__",
-"#--###",
-"#.$$@#",
-"#--.-#",
-"#--###",
-"####__"
-].join("\n");
-
-const level9Text = [
-"#######",
-"#-----#",
-"#-$$$.#",
-"##-#@.#",
-"_#-#-.#",
-"_#--#-#",
-"_##---#",
-"__#####"
-].join("\n");
-
-const level10Text = [
-"_________#####",
-"_________#---#",
-"##########-#-#",
-"#.-----#--$--#",
-"#.--@--#----##",
-"#.#-#######--#",
-"#---------$$-#",
-"##--#####----#",
-"_####___######"
-].join("\n");
-
-const level11Text = [
-"_#######__",
-"_#-----###",
-"##-###$--#",
-"#--..-$--#",
-"#--.##$-##",
-"###-#-@##_",
-"__#---##__",
-"__#####___"
-].join("\n");
-
-const level12Text = [
-"######____",
-"#----#####",
-"#---$-$--#",
-"###$...@-#",
-"__#--#####",
-"__####____"
-].join("\n");
-
-const level13Text = [
-"#######",
-"#@-$.-#",
-"#--$--#",
-"#.-$-$#",
-"#-.-#.#",
-"#######"
-].join("\n");
-
-
-/** 全局数据 */
-let floorMap = [];  
-let objMap   = [];  
-let rows = 0, cols = 0;  
-let playerX = 0, playerY = 0;  
-let gameWon = false; // 胜利后禁止移动
-
-let undoStack = [];  // 用于“撤回”的移动记录
-let currentLevelText = ""; // 用于“重玩”当前关卡
-
-/** 载入关卡并解析 */
+/** 加载关卡 */
 function loadLevelFromText(mapText) {
   gameWon = false;
   undoStack = [];
-  currentLevelText = mapText; // 保存当前地图文本
+  currentLevelData = mapText;
+  showStatus("");
 
-  const lines = mapText.replace(/\r/g, "").split("\n");
+  const lines = mapText.replace(/\r/g, "").split("\n").filter(l => l.trim().length > 0);
   rows = lines.length;
-  cols = lines[0]?.length || 0;
+  cols = 0;
+  lines.forEach(l => { if (l.length > cols) cols = l.length; });
 
   floorMap = [];
-  objMap   = [];
-  playerX  = -1;
-  playerY  = -1;
+  objMap = [];
+  playerX = -1;
+  playerY = -1;
 
   for (let y = 0; y < rows; y++) {
     floorMap[y] = [];
-    objMap[y]   = [];
+    objMap[y] = [];
     const line = lines[y] || "";
     for (let x = 0; x < cols; x++) {
-      const ch = line[x] || " ";
+      let ch = line[x] || " ";
+      if(ch === '"') ch = " ";
 
-      if (ch === '#') {
-        floorMap[y][x] = '#';
-        objMap[y][x]   = ' ';
-      } else if (ch === '_') {
-        floorMap[y][x] = '_';
-        objMap[y][x]   = ' ';
-      } else if (ch === '.') {
-        floorMap[y][x] = '.';
-        objMap[y][x]   = ' ';
-      } else if (ch === '-') {
-        floorMap[y][x] = '-';
-        objMap[y][x]   = ' ';
-      } else if (ch === '@') {
-        floorMap[y][x] = '-';
-        objMap[y][x]   = '@';
-        if (playerX < 0) {
-          playerX = x;
-          playerY = y;
-        }
-      } else if (ch === '$') {
-        floorMap[y][x] = '-';
-        objMap[y][x]   = '$';
-      } else if (ch === '*') {
-        floorMap[y][x] = '.';
-        objMap[y][x]   = '$';
-      } else {
-        floorMap[y][x] = '-';
-        objMap[y][x]   = ' ';
-      }
+      if (ch === '#') { floorMap[y][x] = '#'; objMap[y][x] = ' '; }
+      else if (ch === '_') { floorMap[y][x] = '_'; objMap[y][x] = ' '; }
+      else if (ch === '.') { floorMap[y][x] = '.'; objMap[y][x] = ' '; }
+      else if (ch === '@') { floorMap[y][x] = '-'; objMap[y][x] = '@'; playerX = x; playerY = y; }
+      else if (ch === '$') { floorMap[y][x] = '-'; objMap[y][x] = '$'; }
+      else if (ch === '*') { floorMap[y][x] = '.'; objMap[y][x] = '$'; }
+      else { floorMap[y][x] = '-'; objMap[y][x] = ' '; }
     }
   }
 
-  // 获取 game-board 容器
-  const board = document.getElementById("game-board");
-
-  // 设置网格行和列
-  board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-  board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
-  // 动态调整单元格大小，使所有单元格适配容器
-  setDynamicCellSize(board);
-
-  // 渲染地图
   drawBoard();
-}
-
-/**
- * 动态调整单元格大小，确保所有单元格都显示在 game-board 容器内
- */
- function setDynamicCellSize(board) {
-  // 获取 game-board 容器的实际宽高
-  const boardHeight = board.offsetHeight || board.clientHeight; // 容器的高度
-  const boardWidth = board.offsetWidth || board.clientWidth;    // 容器的宽度
-
-  if (boardHeight === 0 || boardWidth === 0) {
-    // 如果尚未渲染完成，使用默认值并等待渲染
-    requestAnimationFrame(() => setDynamicCellSize(board));
-    return;
-  }
-
-  // 根据 game-board 容器计算单元格大小
-  const cellHeight = Math.floor(boardHeight / rows); // 单元格高度
-  const cellWidth = Math.floor(boardWidth / cols);   // 单元格宽度
-  const cellSize = Math.min(cellHeight, cellWidth);  // 单元格的最大大小
-
-  // 设置单元格大小，确保所有单元格都显示在容器内
-  board.style.gridAutoRows = `${cellSize}px`;
-  board.style.gridAutoColumns = `${cellSize}px`;
-
-    // 设置网格行和列，确保地图充满容器
-    board.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-  board.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+  adjustBoardSize();
 }
 
 /** 绘制地图 */
 function drawBoard() {
   const board = document.getElementById("game-board");
   board.innerHTML = "";
+  board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const tile = document.createElement("div");
-      tile.classList.add("tile");
-
+      tile.className = "tile";
+      
       const fch = floorMap[y][x];
       const och = objMap[y][x];
 
-      // —— 底层 —— //
-      if (fch === '#') {
-        tile.classList.add("wall");
-      } else if (fch === '_') {
-        tile.classList.add("outside");
-      } else if (fch === '-') {
-        tile.classList.add("floor");
-      } else if (fch === '.') {
-        tile.classList.add("goal");
-      }
+      // 底层：墙、地、终点
+      if (fch === '#') tile.classList.add("wall");
+      else if (fch === '_') tile.classList.add("outside");
+      else if (fch === '-') tile.classList.add("floor");
+      else if (fch === '.') tile.classList.add("goal"); // 终点现在是绝对定位的子元素
 
-      // —— 上层 —— //
-      if (och === '@') {
-        tile.classList.add("player");
-      } else if (och === '$') {
-        if (fch === '.') {
-          tile.classList.add("box-on-goal");
-        } else {
-          tile.classList.add("box");
-        }
+      // 上层：人、箱子
+      if (och === '@') tile.classList.add("player");
+      else if (och === '$') {
+        tile.classList.add(fch === '.' ? "box-on-goal" : "box");
       }
 
       board.appendChild(tile);
     }
   }
-
+  
+  // 重新计算字体大小，确保新加的 emoji 大小正确
+  requestAnimationFrame(adjustBoardSize);
   checkWin();
 }
 
-/** 胜利判定：地图中无 '$' 即胜利 */
+/** 适配屏幕尺寸 & 动态字体大小 */
+function adjustBoardSize() {
+  const container = document.getElementById('game-container');
+  const board = document.getElementById('game-board');
+  
+  const maxWidth = container.clientWidth;
+  const maxHeight = container.clientHeight;
+  
+  const sizeByWidth = Math.floor(maxWidth / cols);
+  const sizeByHeight = Math.floor(maxHeight / rows);
+  const cellSize = Math.min(sizeByWidth, sizeByHeight, 60); // 最大60px
+
+  board.style.width = `${cellSize * cols}px`;
+  board.style.height = `${cellSize * rows}px`;
+  
+  // 动态调整 Emoji 大小：占格子的 80%
+  const tiles = document.querySelectorAll('.tile');
+  const fontSize = Math.floor(cellSize * 0.8) + "px";
+  
+  tiles.forEach(t => {
+      // 只有伪元素需要字体大小，但通过父元素控制最方便
+      t.style.fontSize = fontSize;
+  });
+}
+
+/** 胜利检测 */
 function checkWin() {
   let hasBox = false;
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      if (objMap[y][x] === '$') {
-        hasBox = true;
-        break;
+  let allDone = true;
+  for(let y=0; y<rows; y++){
+      for(let x=0; x<cols; x++){
+          if(objMap[y][x] === '$' && floorMap[y][x] !== '.') {
+              allDone = false;
+              break;
+          }
       }
-    }
-    if (hasBox) break;
+      if(!allDone) break;
   }
 
-  const statusEl = document.getElementById("status");
-  if (!hasBox) {
-    statusEl.textContent = "恭喜，所有箱子都推到目标点！(可按撤回返回上一步)";
+  if (allDone && !gameWon) {
     gameWon = true;
-  } else {
-    statusEl.textContent = "";
+    showStatus("🎉 恭喜！完美通关！");
+    if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
   }
 }
 
-/** 移动玩家 (dx, dy) */
+function showStatus(msg) {
+  const el = document.getElementById("status-overlay");
+  el.textContent = msg;
+  if(msg) el.classList.add('show');
+  else el.classList.remove('show');
+}
+
+/** 移动逻辑 */
 function movePlayer(dx, dy) {
-  if (gameWon) return; // 胜利后禁止移动
+  if (gameWon) return;
 
   const newX = playerX + dx;
   const newY = playerY + dy;
 
-  // 越界检查
   if (newY < 0 || newY >= rows || newX < 0 || newX >= cols) return;
-
-  // 墙/墙外 不可通过
-  const floorChar = floorMap[newY][newX];
-  if (floorChar === '#' || floorChar === '_') return;
+  if (floorMap[newY][newX] === '#' || floorMap[newY][newX] === '_') return;
 
   const targetObj = objMap[newY][newX];
-
-  // 每次移动都记录，用于撤回
   let moveRecord = {
-    playerOldX: playerX,
-    playerOldY: playerY,
-    playerNewX: playerX,
-    playerNewY: playerY,
-    boxOldX: null,
-    boxOldY: null,
-    boxNewX: null,
-    boxNewY: null
+    px: playerX, py: playerY, nx: newX, ny: newY,
+    box: null 
   };
 
   if (targetObj === ' ') {
-    // 直接走
     objMap[playerY][playerX] = ' ';
-    objMap[newY][newX]       = '@';
-    moveRecord.playerNewX = newX;
-    moveRecord.playerNewY = newY;
-
-    playerX = newX;
-    playerY = newY;
-
+    objMap[newY][newX] = '@';
+    playerX = newX; playerY = newY;
     undoStack.push(moveRecord);
-
   } else if (targetObj === '$') {
-    // 推箱子
     const boxNextX = newX + dx;
     const boxNextY = newY + dy;
     if (boxNextY < 0 || boxNextY >= rows || boxNextX < 0 || boxNextX >= cols) return;
-    if (floorMap[boxNextY][boxNextX] === '#' || floorMap[boxNextY][boxNextX] === '_') return;
-    if (objMap[boxNextY][boxNextX] === '$' || objMap[boxNextY][boxNextX] === '@') return;
+    if (["#", "_"].includes(floorMap[boxNextY][boxNextX])) return;
+    if (["$", "@"].includes(objMap[boxNextY][boxNextX])) return;
 
-    // 推动
     objMap[playerY][playerX] = ' ';
-    objMap[newY][newX]       = '@';
+    objMap[newY][newX] = '@';
     objMap[boxNextY][boxNextX] = '$';
-
-    moveRecord.playerNewX = newX;
-    moveRecord.playerNewY = newY;
-    moveRecord.boxOldX = newX;
-    moveRecord.boxOldY = newY;
-    moveRecord.boxNewX = boxNextX;
-    moveRecord.boxNewY = boxNextY;
-
-    playerX = newX;
-    playerY = newY;
-
+    
+    moveRecord.box = { ox: newX, oy: newY, nx: boxNextX, ny: boxNextY };
+    playerX = newX; playerY = newY;
     undoStack.push(moveRecord);
   }
 
+  if(navigator.vibrate) navigator.vibrate(15); // 轻微震动反馈
   drawBoard();
 }
 
-/** 撤回到上一步 */
+/** 撤回 */
 function undoMove() {
   if (undoStack.length === 0) return;
   const last = undoStack.pop();
 
-  // 还原玩家
-  objMap[last.playerNewY][last.playerNewX] = ' ';
-  objMap[last.playerOldY][last.playerOldX] = '@';
-  playerX = last.playerOldX;
-  playerY = last.playerOldY;
+  objMap[last.ny][last.nx] = ' ';
+  objMap[last.py][last.px] = '@';
+  playerX = last.px;
+  playerY = last.py;
 
-  // 还原箱子
-  if (last.boxOldX !== null) {
-    objMap[last.boxNewY][last.boxNewX] = ' ';
-    objMap[last.boxOldY][last.boxOldX] = '$';
+  if (last.box) {
+    objMap[last.box.nx][last.box.ny] = ' ';
+    objMap[last.box.ox][last.box.oy] = '$';
   }
 
-  // 取消胜利状态（若本关原本已胜利）
   gameWon = false;
-  document.getElementById("status").textContent = "";
-
+  showStatus("");
   drawBoard();
 }
 
-/** 重玩当前关卡（回到初始状态） */
-function restartLevel() {
-  if (!currentLevelText) return;
-  loadLevelFromText(currentLevelText);
+/* ================= 事件监听 ================= */
+window.addEventListener("resize", adjustBoardSize);
+
+document.addEventListener("keydown", (e) => {
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+    e.preventDefault();
+  }
+  if (e.key === "ArrowUp") movePlayer(0, -1);
+  else if (e.key === "ArrowDown") movePlayer(0, 1);
+  else if (e.key === "ArrowLeft") movePlayer(-1, 0);
+  else if (e.key === "ArrowRight") movePlayer(1, 0);
+});
+
+const bindBtn = (id, dx, dy) => {
+  const btn = document.getElementById(id);
+  btn.addEventListener("touchstart", (e) => { e.preventDefault(); movePlayer(dx, dy); });
+  btn.addEventListener("click", () => movePlayer(dx, dy));
+};
+bindBtn("btn-up", 0, -1);
+bindBtn("btn-down", 0, 1);
+bindBtn("btn-left", -1, 0);
+bindBtn("btn-right", 1, 0);
+
+document.getElementById("btn-undo").onclick = undoMove;
+document.getElementById("btn-restart").onclick = () => loadLevelFromText(currentLevelData);
+
+// 自定义地图
+const modal = document.getElementById("custom-map-modal");
+document.getElementById("btn-show-custom").onclick = () => {
+  modal.style.display = "flex";
+  document.getElementById("map-input").focus();
+};
+document.getElementById("btn-load-map").onclick = () => {
+  const txt = document.getElementById("map-input").value;
+  if(txt.trim()) {
+    loadLevelFromText(txt);
+    modal.style.display = "none";
+    document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+  }
+};
+
+// 触摸滑动
+let touchStartX = 0;
+let touchStartY = 0;
+const gameContainer = document.getElementById("game-container");
+
+gameContainer.addEventListener('touchstart', function(e) {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+    e.preventDefault();
+}, {passive: false});
+
+gameContainer.addEventListener('touchend', function(e) {
+    let touchEndX = e.changedTouches[0].screenX;
+    let touchEndY = e.changedTouches[0].screenY;
+    handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
+    e.preventDefault();
+}, {passive: false});
+
+function handleSwipe(sx, sy, ex, ey) {
+    let dx = ex - sx;
+    let dy = ey - sy;
+    if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
+        movePlayer(dx > 0 ? 1 : -1, 0);
+    } else {
+        movePlayer(0, dy > 0 ? 1 : -1);
+    }
 }
 
-/* ========== 键盘监听 ========== */
-document.addEventListener("keydown", (e) => {
-  switch (e.key) {
-    case "ArrowUp":
-      movePlayer(0, -1);
-      break;
-    case "ArrowDown":
-      movePlayer(0, 1);
-      break;
-    case "ArrowLeft":
-      movePlayer(-1, 0);
-      break;
-    case "ArrowRight":
-      movePlayer(1, 0);
-      break;
-    default:
-      break;
-  }
-});
+// 启动
+initUI();
 
-
-// 监听窗口大小变化
-window.addEventListener("resize", () => {
-  const board = document.getElementById("game-board");
-  setDynamicCellSize(board); // 调整单元格大小
-});
-
-/* ========== 顶部按钮：加载关卡1-6 & 自定义地图 ========== */
-document.getElementById("btn-level1").addEventListener("click", () => {
-  loadLevelFromText(level1Text);
-});
-document.getElementById("btn-level2").addEventListener("click", () => {
-  loadLevelFromText(level2Text);
-});
-document.getElementById("btn-level3").addEventListener("click", () => {
-  loadLevelFromText(level3Text);
-});
-document.getElementById("btn-level4").addEventListener("click", () => {
-  loadLevelFromText(level4Text);
-});
-document.getElementById("btn-level5").addEventListener("click", () => {
-  loadLevelFromText(level5Text);
-});
-document.getElementById("btn-level6").addEventListener("click", () => {
-  loadLevelFromText(level6Text);
-});
-document.getElementById("btn-level7").addEventListener("click", () => {
-  loadLevelFromText(level7Text);
-});
-document.getElementById("btn-level8").addEventListener("click", () => {
-  loadLevelFromText(level8Text);
-});
-document.getElementById("btn-level9").addEventListener("click", () => {
-  loadLevelFromText(level9Text);
-});
-document.getElementById("btn-level10").addEventListener("click", () => {
-  loadLevelFromText(level10Text);
-});
-document.getElementById("btn-level11").addEventListener("click", () => {
-  loadLevelFromText(level11Text);
-});
-document.getElementById("btn-level12").addEventListener("click", () => {
-  loadLevelFromText(level12Text);
-});
-document.getElementById("btn-level13").addEventListener("click", () => {
-  loadLevelFromText(level13Text);
-});
-
-
-
-const btnShowCustomMap = document.getElementById("btn-show-custom-map");
-const customMapContainer = document.getElementById("custom-map-container");
-btnShowCustomMap.addEventListener("click", () => {
-  if (customMapContainer.style.display === "none") {
-    customMapContainer.style.display = "block";
-  } else {
-    customMapContainer.style.display = "none";
-  }
-});
-
-document.getElementById("btn-load-map").addEventListener("click", () => {
-  const mapText = document.getElementById("map-input").value;
-  if (!mapText.trim()) {
-    alert("请先在文本框中输入或粘贴地图！");
-    return;
-  }
-  loadLevelFromText(mapText);
-});
-
-/* ========== 下方按钮：上下左右、撤回、重玩 ========== */
-/* —— 上下左右 —— */
-document.getElementById("btn-up").addEventListener("click", () => {
-  movePlayer(0, -1);
-});
-document.getElementById("btn-down").addEventListener("click", () => {
-  movePlayer(0, 1);
-});
-document.getElementById("btn-left").addEventListener("click", () => {
-  movePlayer(-1, 0);
-});
-document.getElementById("btn-right").addEventListener("click", () => {
-  movePlayer(1, 0);
-});
-
-/* —— 撤回和重玩 —— */
-document.getElementById("btn-undo").addEventListener("click", () => {
-  undoMove();
-});
-document.getElementById("btn-restart").addEventListener("click", () => {
-  restartLevel();
-});
-
-/* 启动时默认不加载关卡、文本框隐藏 */
-customMapContainer.style.display = "none";
 </script>
 </body>
 </html>
