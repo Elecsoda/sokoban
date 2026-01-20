@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>推箱子游戏 @ 孙维刚教育研究院</title>
+  <title>推箱子 @ 孙维刚教育研究院</title>
   <style>
     /* —— 全局设置 —— */
     :root {
@@ -18,11 +18,11 @@
       padding: 0;
       background-color: var(--bg-color);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      height: 100vh; /* 这里的 100vh 在某些手机浏览器可能会被地址栏遮挡，下面会通过 flex 布局优化 */
-      height: 100dvh; /* 尝试使用动态视口高度适配现代浏览器 */
+      height: 100vh;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* 禁止整个页面滚动 */
+      overflow: hidden;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -98,8 +98,7 @@
       display: grid;
       gap: 1px;
       background-color: #bbb;
-      /* 关键修改：宽高不再使用比例，而是由 JS 动态计算绝对像素，防止变形 */
-      flex: none; /* 防止被父容器挤压 */
+      flex: none; 
     }
 
     /* 状态提示浮层 */
@@ -130,7 +129,6 @@
       align-items: center;
       justify-content: center;
       position: relative;
-      /* 强制保持正方形，防止任何可能的 CSS 拉伸 */
       aspect-ratio: 1 / 1; 
       width: 100%;
       height: 100%;
@@ -261,7 +259,6 @@
       background-color: #f8f9fa;
     }
 
-    /* 统一按钮颜色，不再给上键单独加色 */
     #btn-up { grid-column: 2; grid-row: 1; }
     #btn-left { grid-column: 1; grid-row: 2; }
     #btn-down { grid-column: 2; grid-row: 2; }
@@ -558,7 +555,6 @@ function drawBoard() {
   const board = document.getElementById("game-board");
   board.innerHTML = "";
   // 注意：这里先暂设 rows/cols，真正的大小和格子形状由 adjustBoardSize 强制覆盖
-  // 这样可以确保内容先生成，然后再计算精确像素
   
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
@@ -588,10 +584,7 @@ function drawBoard() {
   checkWin();
 }
 
-/** * 核心修复：适配屏幕尺寸 & 强制正方形 
- * 之前使用 1fr 可能导致在非整除宽度下被挤压成矩形
- * 现在改为计算精确像素值并强制赋值给 grid-template
- */
+/** 核心修复：适配屏幕尺寸 & 强制正方形 */
 function adjustBoardSize() {
   const container = document.getElementById('game-container');
   const board = document.getElementById('game-board');
@@ -599,22 +592,16 @@ function adjustBoardSize() {
   const maxWidth = container.clientWidth;
   const maxHeight = container.clientHeight;
   
-  // 计算基于行和列的最佳单元格大小
   const sizeByWidth = Math.floor(maxWidth / cols);
   const sizeByHeight = Math.floor(maxHeight / rows);
-  // 取最小值，确保放得下
   const cellSize = Math.min(sizeByWidth, sizeByHeight, 60); 
 
-  // 1. 设置总宽高
   board.style.width = `${cellSize * cols}px`;
   board.style.height = `${cellSize * rows}px`;
   
-  // 2. 【关键】强制定义每一个格子的宽高为固定像素，而不是比例
-  // 这样浏览器就绝对不会因为弹性布局而改变形状
   board.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
   board.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
 
-  // 动态调整 Emoji 大小
   const tiles = document.querySelectorAll('.tile');
   const fontSize = Math.floor(cellSize * 0.8) + "px";
   tiles.forEach(t => {
@@ -690,21 +677,31 @@ function movePlayer(dx, dy) {
   drawBoard();
 }
 
-/** 撤回 */
+/** 撤回逻辑（最终修复版） */
 function undoMove() {
   if (undoStack.length === 0) return;
   const last = undoStack.pop();
 
+  // 1. 清理玩家当前位置（必须使用记录中的 nx/ny，不能依赖 playerX 全局变量，防止偏差）
   objMap[last.ny][last.nx] = ' ';
+
+  // 2. 如果有箱子，清理箱子的当前位置，并恢复箱子到旧位置
+  if (last.box) {
+    // 清理箱子现在的坐标
+    objMap[last.box.ny][last.box.nx] = ' ';
+    // 恢复箱子到原来的坐标 (last.box.ox/oy)
+    // 注意：box.ox 其实等于 last.nx，所以这里会覆盖第1步的清理，正确地把箱子放回玩家面前
+    objMap[last.box.oy][last.box.ox] = '$';
+  }
+
+  // 3. 恢复玩家到旧位置
   objMap[last.py][last.px] = '@';
+
+  // 4. 更新全局坐标
   playerX = last.px;
   playerY = last.py;
 
-  if (last.box) {
-    objMap[last.box.nx][last.box.ny] = ' ';
-    objMap[last.box.ox][last.box.oy] = '$';
-  }
-
+  // 5. 重置游戏状态
   gameWon = false;
   showStatus("");
   drawBoard();
