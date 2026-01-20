@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>推箱子 - 移动端优化版</title>
+  <title>推箱子游戏 @ 孙维刚教育研究院</title>
   <style>
     /* —— 全局设置 —— */
     :root {
@@ -18,7 +18,8 @@
       padding: 0;
       background-color: var(--bg-color);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      height: 100vh;
+      height: 100vh; /* 这里的 100vh 在某些手机浏览器可能会被地址栏遮挡，下面会通过 flex 布局优化 */
+      height: 100dvh; /* 尝试使用动态视口高度适配现代浏览器 */
       display: flex;
       flex-direction: column;
       overflow: hidden; /* 禁止整个页面滚动 */
@@ -50,7 +51,7 @@
       display: flex;
       overflow-x: auto;
       gap: 12px;
-      padding: 5px 15px 15px 15px; /* 增加底部padding防止阴影被切 */
+      padding: 5px 15px 15px 15px;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
     }
@@ -97,7 +98,8 @@
       display: grid;
       gap: 1px;
       background-color: #bbb;
-      /* 宽高由 JS 动态计算 */
+      /* 关键修改：宽高不再使用比例，而是由 JS 动态计算绝对像素，防止变形 */
+      flex: none; /* 防止被父容器挤压 */
     }
 
     /* 状态提示浮层 */
@@ -127,7 +129,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative; /* 关键：用于绝对定位子元素 */
+      position: relative;
+      /* 强制保持正方形，防止任何可能的 CSS 拉伸 */
+      aspect-ratio: 1 / 1; 
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
     }
 
     /* 墙壁 */
@@ -149,20 +156,19 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 50%;   /* 更大 */
-      height: 50%;  /* 更大 */
+      width: 50%;
+      height: 50%;
       background-color: #ff3333;
       border-radius: 50%;
-      z-index: 1; /* 在最底层（地板之上，物体之下） */
+      z-index: 1; 
       opacity: 0.6;
     }
 
     /* 玩家：工人 */
     .player::before {
-      content: "👷"; /* 工人 Emoji */
+      content: "👷";
       position: relative;
-      z-index: 5; /* 确保在红点上面 */
-      /* font-size 由 JS 动态控制 */
+      z-index: 5;
       filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
     }
 
@@ -174,12 +180,12 @@
       filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
     }
 
-    /* 箱子在目标点上：绿底，依然是箱子 */
+    /* 箱子在目标点上 */
     .box-on-goal {
-      background-color: #ccffcc; /* 变绿 */
+      background-color: #ccffcc;
     }
     .box-on-goal::before {
-      content: "📦"; /* 保持箱子样子 */
+      content: "📦";
       position: relative;
       z-index: 5;
       filter: drop-shadow(0 0 5px rgba(0,255,0,0.5));
@@ -188,7 +194,7 @@
     /* —— 底部控制区 —— */
     #controls-area {
       background-color: var(--control-bg);
-      padding: 10px 20px 20px 20px; /* 调整底部padding */
+      padding: 10px 20px 20px 20px;
       border-top-left-radius: 25px;
       border-top-right-radius: 25px;
       box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
@@ -255,11 +261,21 @@
       background-color: #f8f9fa;
     }
 
-    /* 统一所有按钮样式，移除 btn-up 的特殊颜色 */
+    /* 统一按钮颜色，不再给上键单独加色 */
     #btn-up { grid-column: 2; grid-row: 1; }
     #btn-left { grid-column: 1; grid-row: 2; }
     #btn-down { grid-column: 2; grid-row: 2; }
     #btn-right { grid-column: 3; grid-row: 2; }
+
+    /* —— 底部文字 —— */
+    .footer-info {
+      font-size: 12px;
+      color: #adb5bd;
+      margin-top: 15px;
+      text-align: center;
+      width: 100%;
+      font-weight: 400;
+    }
 
     /* —— 自定义地图模态框 —— */
     #custom-map-modal {
@@ -483,12 +499,11 @@ function initUI() {
   levels.forEach((lvl, index) => {
     const btn = document.createElement('button');
     btn.className = 'level-btn';
-    btn.textContent = `第 ${index + 1} 关`; // 简化文案
+    btn.textContent = `第 ${index + 1} 关`; 
     btn.onclick = () => {
       document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       loadLevelFromText(lvl);
-      // 自动滚动到中间（提升体验）
       btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     };
     container.appendChild(btn);
@@ -542,9 +557,9 @@ function loadLevelFromText(mapText) {
 function drawBoard() {
   const board = document.getElementById("game-board");
   board.innerHTML = "";
-  board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-  board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
+  // 注意：这里先暂设 rows/cols，真正的大小和格子形状由 adjustBoardSize 强制覆盖
+  // 这样可以确保内容先生成，然后再计算精确像素
+  
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const tile = document.createElement("div");
@@ -557,7 +572,7 @@ function drawBoard() {
       if (fch === '#') tile.classList.add("wall");
       else if (fch === '_') tile.classList.add("outside");
       else if (fch === '-') tile.classList.add("floor");
-      else if (fch === '.') tile.classList.add("goal"); // 终点现在是绝对定位的子元素
+      else if (fch === '.') tile.classList.add("goal"); 
 
       // 上层：人、箱子
       if (och === '@') tile.classList.add("player");
@@ -569,12 +584,14 @@ function drawBoard() {
     }
   }
   
-  // 重新计算字体大小，确保新加的 emoji 大小正确
   requestAnimationFrame(adjustBoardSize);
   checkWin();
 }
 
-/** 适配屏幕尺寸 & 动态字体大小 */
+/** * 核心修复：适配屏幕尺寸 & 强制正方形 
+ * 之前使用 1fr 可能导致在非整除宽度下被挤压成矩形
+ * 现在改为计算精确像素值并强制赋值给 grid-template
+ */
 function adjustBoardSize() {
   const container = document.getElementById('game-container');
   const board = document.getElementById('game-board');
@@ -582,26 +599,31 @@ function adjustBoardSize() {
   const maxWidth = container.clientWidth;
   const maxHeight = container.clientHeight;
   
+  // 计算基于行和列的最佳单元格大小
   const sizeByWidth = Math.floor(maxWidth / cols);
   const sizeByHeight = Math.floor(maxHeight / rows);
-  const cellSize = Math.min(sizeByWidth, sizeByHeight, 60); // 最大60px
+  // 取最小值，确保放得下
+  const cellSize = Math.min(sizeByWidth, sizeByHeight, 60); 
 
+  // 1. 设置总宽高
   board.style.width = `${cellSize * cols}px`;
   board.style.height = `${cellSize * rows}px`;
   
-  // 动态调整 Emoji 大小：占格子的 80%
+  // 2. 【关键】强制定义每一个格子的宽高为固定像素，而不是比例
+  // 这样浏览器就绝对不会因为弹性布局而改变形状
+  board.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+  board.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+
+  // 动态调整 Emoji 大小
   const tiles = document.querySelectorAll('.tile');
   const fontSize = Math.floor(cellSize * 0.8) + "px";
-  
   tiles.forEach(t => {
-      // 只有伪元素需要字体大小，但通过父元素控制最方便
       t.style.fontSize = fontSize;
   });
 }
 
 /** 胜利检测 */
 function checkWin() {
-  let hasBox = false;
   let allDone = true;
   for(let y=0; y<rows; y++){
       for(let x=0; x<cols; x++){
@@ -664,7 +686,7 @@ function movePlayer(dx, dy) {
     undoStack.push(moveRecord);
   }
 
-  if(navigator.vibrate) navigator.vibrate(15); // 轻微震动反馈
+  if(navigator.vibrate) navigator.vibrate(15); 
   drawBoard();
 }
 
