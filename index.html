@@ -11,12 +11,35 @@
       --control-bg: rgba(255, 255, 255, 0.95);
       --primary-color: #007AFF;
       --btn-active: #0056b3;
+      --text-color: #333;
+      --wall-color: #555;
+      --floor-color: #fffaf0;
+    }
+
+    /* ====== 科技废土主题 (Wasteland Theme) ====== 
+       当 body 拥有 .theme-wasteland 类时生效
+    */
+    body.theme-wasteland {
+      --bg-color: #050a10; /* 深空黑 */
+      --control-bg: rgba(10, 15, 25, 0.95);
+      --primary-color: #00f3ff; /* 赛博青蓝 */
+      --btn-active: #00bcd4;
+      --text-color: #b8e6e8;
+      --wall-color: #1a2634;
+      --floor-color: #0d1218;
+      
+      /* 科技感背景网格 */
+      background-image: 
+        linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+      background-size: 30px 30px;
     }
 
     body {
       margin: 0;
       padding: 0;
       background-color: var(--bg-color);
+      color: var(--text-color);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       height: 100vh;
       height: 100dvh;
@@ -25,24 +48,26 @@
       overflow: hidden;
       user-select: none;
       -webkit-user-select: none;
+      transition: background-color 0.5s ease;
     }
 
     /* —— 顶部区域：标题与关卡选择 —— */
     header {
       padding: 10px 0;
-      background: #fff;
+      background: var(--control-bg); /* 跟随主题 */
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       z-index: 10;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
       gap: 5px;
+      transition: background 0.5s;
     }
 
     h1 {
       margin: 5px 0 5px 0;
       font-size: 1.1rem;
-      color: #333;
+      color: var(--text-color); /* 跟随主题 */
       text-align: center;
     }
 
@@ -72,12 +97,25 @@
       transition: all 0.2s;
     }
 
+    /* 废土主题下的按钮样式 */
+    body.theme-wasteland .level-btn {
+      background-color: #21262d;
+      border-color: #30363d;
+      color: #8b949e;
+    }
+
     .level-btn.active {
       background-color: var(--primary-color);
       color: white;
       border-color: var(--primary-color);
-      box-shadow: 0 3px 8px rgba(0,122,255,0.3);
+      box-shadow: 0 3px 8px rgba(0, 122, 255, 0.3);
       transform: translateY(-1px);
+    }
+    
+    /* 废土主题激活按钮 */
+    body.theme-wasteland .level-btn.active {
+      color: #0d1117;
+      box-shadow: 0 0 10px rgba(0, 255, 157, 0.4);
     }
 
     /* —— 游戏主区域 —— */
@@ -92,6 +130,14 @@
       margin: 10px;
       border-radius: 12px;
       box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+      transition: background-color 0.5s;
+    }
+    
+    /* 废土主题容器背景 */
+    body.theme-wasteland #game-container {
+      background-color: #080c10;
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.1), inset 0 0 50px rgba(0, 0, 0, 0.8);
+      border: 1px solid #1f2f3f;
     }
 
     #game-board {
@@ -99,6 +145,11 @@
       gap: 1px;
       background-color: #bbb;
       flex: none; 
+      transition: background-color 0.5s;
+    }
+    body.theme-wasteland #game-board {
+      background-color: #30363d;
+      gap: 2px; /* 增加一点缝隙感 */
     }
 
     /* 状态提示浮层 */
@@ -117,6 +168,12 @@
       transition: opacity 0.3s;
       z-index: 20;
       white-space: nowrap;
+    }
+    body.theme-wasteland #status-overlay {
+      background: rgba(0, 255, 157, 0.2);
+      border: 1px solid #00ff9d;
+      color: #00ff9d;
+      text-shadow: 0 0 5px #00ff9d;
     }
     #status-overlay.show {
       opacity: 1;
@@ -142,10 +199,29 @@
                         linear-gradient(45deg, #666 25%, transparent 25%, transparent 75%, #666 75%, #666);
       background-size: 12px 12px;
     }
+    /* 废土主题：高科技墙壁 */
+    body.theme-wasteland .wall {
+      background-color: #121820;
+      background-image: none;
+      border: 1px solid #00f3ff;
+      box-shadow: 0 0 8px rgba(0, 243, 255, 0.15), inset 0 0 10px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    /* 给墙壁加一点电路纹理 (伪元素) */
+    body.theme-wasteland .wall::after {
+      content: "";
+      position: absolute;
+      top: 15%; left: 15%; right: 15%; bottom: 15%;
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      border-radius: 2px;
+      box-shadow: inset 0 0 4px rgba(0, 243, 255, 0.1);
+    }
+
     /* 墙外 */
     .outside { background-color: transparent; }
+    
     /* 地板 */
-    .floor { background-color: #fffaf0; }
+    .floor { background-color: var(--floor-color); }
     
     /* 目标点（红点）：绝对定位在底层 */
     .goal::after {
@@ -161,6 +237,21 @@
       z-index: 1; 
       opacity: 0.6;
     }
+    /* 废土主题：能量电池舱 (方形插槽) */
+    body.theme-wasteland .goal::after {
+      background-color: rgba(0, 243, 255, 0.05);
+      border: 2px dashed #00f3ff;
+      border-radius: 4px;
+      width: 60%;
+      height: 60%;
+      box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2);
+      animation: pulse-chamber 2s infinite;
+    }
+    @keyframes pulse-chamber {
+      0% { box-shadow: inset 0 0 5px rgba(0, 243, 255, 0.1); opacity: 0.5; }
+      50% { box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.4); opacity: 1; }
+      100% { box-shadow: inset 0 0 5px rgba(0, 243, 255, 0.1); opacity: 0.5; }
+    }
 
     /* 玩家：工人 */
     .player::before {
@@ -169,6 +260,12 @@
       z-index: 5;
       filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
     }
+    /* 废土主题：全副武装战士 (太空人图标替代) */
+    body.theme-wasteland .player::before {
+      content: "🧑‍🚀";
+      filter: drop-shadow(0 0 10px #00f3ff);
+      font-size: 1.1em;
+    }
 
     /* 箱子 */
     .box::before {
@@ -176,6 +273,13 @@
       position: relative;
       z-index: 5;
       filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+    }
+    /* 废土主题：科技电池块 */
+    body.theme-wasteland .box::before {
+      content: "🔋";
+      filter: drop-shadow(0 0 4px #00f3ff) hue-rotate(180deg); /* 调整电池色相匹配 */
+      font-size: 0.9em;
+      transform: rotate(-90deg); /* 让电池竖起来或者横着，看喜好，这里默认 */
     }
 
     /* 箱子在目标点上 */
@@ -187,6 +291,15 @@
       position: relative;
       z-index: 5;
       filter: drop-shadow(0 0 5px rgba(0,255,0,0.5));
+    }
+    /* 废土主题：激活的能量电池 */
+    body.theme-wasteland .box-on-goal {
+      background-color: rgba(0, 243, 255, 0.3);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+    }
+    body.theme-wasteland .box-on-goal::before {
+      content: "🔋";
+      filter: drop-shadow(0 0 15px #ffffff) brightness(1.3);
     }
 
     /* —— 底部控制区 —— */
@@ -201,6 +314,11 @@
       flex-direction: column;
       align-items: center;
       backdrop-filter: blur(10px);
+      transition: background-color 0.5s;
+    }
+    body.theme-wasteland #controls-area {
+      box-shadow: 0 -5px 20px rgba(0, 255, 157, 0.05);
+      border-top: 1px solid #30363d;
     }
 
     /* 功能按钮行 */
@@ -225,8 +343,21 @@
       box-shadow: 0 2px 0 #dee2e6;
     }
     .func-btn:active { transform: translateY(2px); box-shadow: none; }
+    
+    /* 废土主题功能按钮 */
+    body.theme-wasteland .func-btn {
+      background-color: #21262d;
+      color: var(--primary-color);
+      box-shadow: 0 2px 0 #30363d;
+      border: 1px solid #30363d;
+    }
+
     .btn-undo { color: #d63384; background-color: #fff0f6; box-shadow: 0 2px 0 #fcc2d7; }
     .btn-restart { color: #fd7e14; background-color: #fff4e6; box-shadow: 0 2px 0 #ffe8cc; }
+    
+    /* 废土主题特定按钮覆盖 */
+    body.theme-wasteland .btn-undo { color: #ff79c6; background-color: #21262d; box-shadow: 0 2px 0 #444; }
+    body.theme-wasteland .btn-restart { color: #ffb86c; background-color: #21262d; box-shadow: 0 2px 0 #444; }
 
     /* 方向盘布局 */
     #dpad {
@@ -259,6 +390,17 @@
       background-color: #f8f9fa;
     }
 
+    /* 废土主题方向键 */
+    body.theme-wasteland .dpad-btn {
+      background-color: #21262d;
+      color: var(--primary-color);
+      box-shadow: 0 4px 0 #000;
+    }
+    body.theme-wasteland .dpad-btn:active {
+      background-color: #161b22;
+      box-shadow: inset 0 2px 4px #000;
+    }
+
     #btn-up { grid-column: 2; grid-row: 1; }
     #btn-left { grid-column: 1; grid-row: 2; }
     #btn-down { grid-column: 2; grid-row: 2; }
@@ -273,9 +415,12 @@
       width: 100%;
       font-weight: 400;
     }
+    body.theme-wasteland .footer-info {
+      color: #484f58;
+    }
 
-    /* —— 自定义地图模态框 —— */
-    #custom-map-modal {
+    /* —— 自定义地图模态框 & 密码模态框 —— */
+    #custom-map-modal, #password-modal {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -360,6 +505,20 @@
       <div class="modal-actions">
         <button class="func-btn" style="background:#f1f3f5" onclick="document.getElementById('custom-map-modal').style.display='none'">取消</button>
         <button class="func-btn" style="background:var(--primary-color);color:white;box-shadow:0 4px 0 #0056b3" id="btn-load-map">加载</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 密码输入弹窗 -->
+  <div id="password-modal">
+    <div class="modal-content">
+      <h3 style="margin:0 0 15px 0">🔒 安全访问协议</h3>
+      <p style="margin:0 0 10px 0;font-size:14px;color:#666">请输入访问密钥以解锁隐藏区：</p>
+      <input type="text" id="password-input" placeholder="输入密钥..." style="width:100%;padding:10px;border:2px solid #eee;border-radius:10px;box-sizing:border-box;font-size:16px;margin-bottom:15px;outline:none;">
+      <div id="password-error" style="color:red;font-size:14px;margin-bottom:10px;display:none;font-weight:bold;">🚫 密钥无效</div>
+      <div class="modal-actions">
+        <button class="func-btn" style="background:#f1f3f5" onclick="closePasswordModal()">取消</button>
+        <button class="func-btn" style="background:var(--primary-color);color:white;box-shadow:0 4px 0 #0056b3" id="btn-verify-password">验证</button>
       </div>
     </div>
   </div>
@@ -484,6 +643,15 @@ __####____`,
 #######`
 ];
 
+/** 隐藏关卡数据（科技废土风 - 更新版） */
+const hiddenLevelData = `#####_
+#-@-#_
+#...#_
+#$$$##
+#----#
+#----#
+######`;
+
 /** 全局状态 */
 let floorMap = [], objMap = [];
 let rows = 0, cols = 0;
@@ -491,12 +659,13 @@ let playerX = 0, playerY = 0;
 let gameWon = false;
 let undoStack = [];
 let currentLevelData = "";
+let isHiddenLevelActive = false; // 是否处于隐藏关卡模式
 
 /** 初始化界面 */
 function initUI() {
   const container = document.getElementById('level-scroll-container');
   
-  // 生成关卡按钮
+  // 生成标准关卡按钮
   levels.forEach((lvl, index) => {
     const btn = document.createElement('button');
     btn.className = 'level-btn';
@@ -504,23 +673,109 @@ function initUI() {
     btn.onclick = () => {
       document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      loadLevelFromText(lvl);
+      loadLevelFromText(lvl, false); // 加载普通关卡
       btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     };
     container.appendChild(btn);
   });
 
+  // 生成隐藏关卡锁按钮
+  const lockBtn = document.createElement('button');
+  lockBtn.className = 'level-btn';
+  lockBtn.innerHTML = '🔒';
+  lockBtn.id = 'btn-secret-level'; // 给个ID方便操作
+  lockBtn.title = "输入密码解锁";
+  lockBtn.onclick = () => {
+    // 如果已经解锁并激活，直接重载
+    if (lockBtn.dataset.unlocked === "true") {
+        document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+        lockBtn.classList.add('active');
+        loadLevelFromText(hiddenLevelData, true);
+        return;
+    }
+
+    // 否则打开密码弹窗
+    openPasswordModal();
+  };
+  container.appendChild(lockBtn);
+
   // 默认加载第一关
   container.children[0].classList.add('active');
-  loadLevelFromText(levels[0]);
+  loadLevelFromText(levels[0], false);
 }
 
-/** 加载关卡 */
-function loadLevelFromText(mapText) {
+/** 密码弹窗相关逻辑 */
+function openPasswordModal() {
+    const modal = document.getElementById('password-modal');
+    const input = document.getElementById('password-input');
+    const errorMsg = document.getElementById('password-error');
+    
+    input.value = "";
+    errorMsg.style.display = "none";
+    modal.style.display = "flex";
+    
+    // 稍微延迟聚焦，防止移动端键盘跳出问题
+    setTimeout(() => input.focus(), 100);
+}
+
+function closePasswordModal() {
+    document.getElementById('password-modal').style.display = "none";
+}
+
+// 绑定验证按钮
+document.getElementById('btn-verify-password').onclick = verifyPassword;
+
+// 支持回车键提交密码
+document.getElementById('password-input').addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        verifyPassword();
+    }
+});
+
+function verifyPassword() {
+    const input = document.getElementById('password-input');
+    const errorMsg = document.getElementById('password-error');
+    const lockBtn = document.getElementById('btn-secret-level');
+    
+    if (input.value === "LineB") {
+        // 密码正确
+        closePasswordModal();
+        alert("🔓 访问授权成功：已进入废土扇区 15");
+        
+        // 更新按钮状态
+        document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+        lockBtn.classList.add('active');
+        lockBtn.textContent = "第 15 关";
+        lockBtn.dataset.unlocked = "true"; // 标记为已解锁
+        
+        // 加载关卡
+        loadLevelFromText(hiddenLevelData, true);
+        lockBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    } else {
+        // 密码错误
+        errorMsg.style.display = "block";
+        input.value = "";
+        input.focus();
+        // 震动提示
+        if(navigator.vibrate) navigator.vibrate(200);
+    }
+}
+
+/** 加载关卡 (新增 isSecret 参数) */
+function loadLevelFromText(mapText, isSecret = false) {
   gameWon = false;
   undoStack = [];
   currentLevelData = mapText;
+  isHiddenLevelActive = isSecret; // 更新模式状态
   showStatus("");
+
+  // 切换主题
+  if (isSecret) {
+      document.body.classList.add('theme-wasteland');
+  } else {
+      document.body.classList.remove('theme-wasteland');
+  }
 
   const lines = mapText.replace(/\r/g, "").split("\n").filter(l => l.trim().length > 0);
   rows = lines.length;
@@ -628,7 +883,7 @@ function checkWin() {
 
   if (allDone && !gameWon) {
     gameWon = true;
-    showStatus("🎉 恭喜！完美通关！");
+    showStatus(isHiddenLevelActive ? "🤖 系统恢复：核心已就位！" : "🎉 恭喜！完美通关！");
     if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
   }
 }
@@ -735,7 +990,7 @@ bindBtn("btn-left", -1, 0);
 bindBtn("btn-right", 1, 0);
 
 document.getElementById("btn-undo").onclick = undoMove;
-document.getElementById("btn-restart").onclick = () => loadLevelFromText(currentLevelData);
+document.getElementById("btn-restart").onclick = () => loadLevelFromText(currentLevelData, isHiddenLevelActive);
 
 // 自定义地图
 const modal = document.getElementById("custom-map-modal");
@@ -746,7 +1001,7 @@ document.getElementById("btn-show-custom").onclick = () => {
 document.getElementById("btn-load-map").onclick = () => {
   const txt = document.getElementById("map-input").value;
   if(txt.trim()) {
-    loadLevelFromText(txt);
+    loadLevelFromText(txt, false); // 自定义地图视为普通模式
     modal.style.display = "none";
     document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
   }
